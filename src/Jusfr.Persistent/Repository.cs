@@ -2,20 +2,28 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Jusfr.Persistent {
-    public interface IRepository<TEntry, TKey> {
-        void Create(TEntry entity);
-        void Delete(TEntry entity);
-        void Delete(IList<TEntry> entities);
-        void Delete(params Expression<Func<TEntry, Boolean>>[] predicates);
-        void Update(TEntry entity);
-        void Update(IList<TEntry> entities);
-        Boolean Exist(params Expression<Func<TEntry, Boolean>>[] predicates);
-        TEntry Retrive(TKey key);
-        IList<TEntry> Retrive(String filed, IList<TKey> keys);
-        IQueryable<TEntry> All { get; }
-        IRepositoryContext Context { get; }
+    public abstract class Repository<TEntry> : IRepository<TEntry, TEntry> {
+        private IRepositoryContext _context;
+        public IRepositoryContext Context {
+            get { return _context; }
+        }
+
+        public Repository(IRepositoryContext context) {
+            _context = context;
+        }
+
+        public abstract IQueryable<TEntry> All { get; }
+        public abstract TEntry Retrive<TKey>(TKey id);
+        public abstract IEnumerable<TEntry> Retrive<TKey>(String field, IList<TKey> keys);
+
+        public abstract void Create(TEntry entry);
+        public abstract void Update(TEntry entry);
+        public abstract void Update(IEnumerable<TEntry> entries);
+        public abstract void Delete(TEntry entry);
+        public abstract void Delete(IEnumerable<TEntry> entries);
     }
 }
-

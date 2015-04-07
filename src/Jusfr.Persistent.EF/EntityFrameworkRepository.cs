@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Jusfr.Persistent.EF {
-    public class EntityFrameworkRepository<TEntry, TKey> : RepositoryBase<TEntry, TKey>
+    public class EntityFrameworkRepository<TEntry> : Repository<TEntry>
         where TEntry : class {
         public EntityFrameworkRepositoryContext EFContext { get; private set; }
 
@@ -20,66 +20,45 @@ namespace Jusfr.Persistent.EF {
             EFContext = (EntityFrameworkRepositoryContext)context;
         }
 
-        public override void Create(TEntry entity) {
-            EFContext.DBContext.Set<TEntry>().Attach(entity);
-            EFContext.DBContext.Entry<TEntry>(entity).State = EntityState.Added;
+        public override void Create(TEntry entry) {
+            EFContext.DBContext.Set<TEntry>().Attach(entry);
+            EFContext.DBContext.Entry<TEntry>(entry).State = EntityState.Added;
             EFContext.DBContext.SaveChanges();
         }
 
-        public override void Delete(TEntry entity) {
-            EFContext.DBContext.Set<TEntry>().Attach(entity);
-            EFContext.DBContext.Entry<TEntry>(entity).State = EntityState.Deleted;
+        public override void Delete(TEntry entry) {
+            EFContext.DBContext.Set<TEntry>().Attach(entry);
+            EFContext.DBContext.Entry<TEntry>(entry).State = EntityState.Deleted;
             EFContext.DBContext.SaveChanges();
         }
 
-        public override void Delete(IList<TEntry> entities) {
-            foreach (var entity in entities) {
-                EFContext.DBContext.Set<TEntry>().Attach(entity);
-                EFContext.DBContext.Entry<TEntry>(entity).State = EntityState.Deleted;
+        public override void Delete(IEnumerable<TEntry> entries) {
+            foreach (var entry in entries) {
+                EFContext.DBContext.Set<TEntry>().Attach(entry);
+                EFContext.DBContext.Entry<TEntry>(entry).State = EntityState.Deleted;
             }
             EFContext.DBContext.SaveChanges();
         }
-
-        public override void Delete(params Expression<Func<TEntry, bool>>[] predicates) {
-            IQueryable<TEntry> query = All;
-            foreach (var predicate in predicates) {
-                query = query.Where(predicate);
-            }
-            var entities = query.ToList();
-            foreach (var entity in entities) {
-                EFContext.DBContext.Set<TEntry>().Attach(entity);
-                EFContext.DBContext.Entry<TEntry>(entity).State = EntityState.Deleted;
-            }
+        
+        public override void Update(TEntry entry) {
+            EFContext.DBContext.Set<TEntry>().Attach(entry);
+            EFContext.DBContext.Entry<TEntry>(entry).State = EntityState.Modified;
             EFContext.DBContext.SaveChanges();
         }
 
-        public override void Update(TEntry entity) {
-            EFContext.DBContext.Set<TEntry>().Attach(entity);
-            EFContext.DBContext.Entry<TEntry>(entity).State = EntityState.Modified;
-            EFContext.DBContext.SaveChanges();
-        }
-
-        public override void Update(IList<TEntry> entities) {
-            foreach (var entity in entities) {
-                EFContext.DBContext.Set<TEntry>().Attach(entity);
-                EFContext.DBContext.Entry<TEntry>(entity).State = EntityState.Modified;
+        public override void Update(IEnumerable<TEntry> entries) {
+            foreach (var entry in entries) {
+                EFContext.DBContext.Set<TEntry>().Attach(entry);
+                EFContext.DBContext.Entry<TEntry>(entry).State = EntityState.Modified;
             }
             EFContext.DBContext.SaveChanges();
         }
-
-        public override bool Exist(params Expression<Func<TEntry, bool>>[] predicates) {
-            IQueryable<TEntry> query = All;
-            foreach (var predicate in predicates) {
-                query = query.Where(predicate);
-            }
-            return query.Count() > 0;
-        }
-
-        public override TEntry Retrive(TKey key) {
+        
+        public override TEntry Retrive<TKey>(TKey key) {
             return EFContext.DBContext.Set<TEntry>().Find(key);
         }
 
-        public override IList<TEntry> Retrive(String field, IList<TKey> keys) {
+        public override IEnumerable<TEntry> Retrive<TKey>(string field, IList<TKey> keys) {
             throw new NotImplementedException();
         }
 

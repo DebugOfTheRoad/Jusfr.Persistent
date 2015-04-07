@@ -5,21 +5,21 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Jusfr.Persistent.Reflection {
-    public class PropertyAccessor {
-        public static Object Get(Object entity, String propertyName) {
-            var getFunc = CreateGetFunction(entity.GetType(), propertyName);
-            return getFunc(entity);
+namespace Jusfr.Persistent {
+    internal class PropertyAccessor {
+        public static Object Get(Object entry, String propertyName) {
+            var getFunc = CreateGetFunction(entry.GetType(), propertyName);
+            return getFunc(entry);
         }
 
-        public static void Set(Object entity, String propertyName, Object value) {
-            var setAct = CreateSetAction(entity.GetType(), propertyName);
-            setAct(entity, value);
+        public static void Set(Object entry, String propertyName, Object value) {
+            var setAct = CreateSetAction(entry.GetType(), propertyName);
+            setAct(entry, value);
         }
 
-        public static void Set<TValue>(Object entity, String propertyName, TValue value) {
-            var set = CreateSetAction(entity.GetType(), propertyName);
-            set(entity, value);
+        public static void Set<TValue>(Object entry, String propertyName, TValue value) {
+            var set = CreateSetAction(entry.GetType(), propertyName);
+            set(entry, value);
         }
 
         public static Func<TEntry, Object> CreateGetFunction<TEntry>(String propertyName) {

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Jusfr.Persistent {
-    public interface IRepositoryContext : IUnitOfWork {
+    public interface IRepositoryContext : IUnitOfWork, IDisposable {
         Guid ID { get; }
     }
 }

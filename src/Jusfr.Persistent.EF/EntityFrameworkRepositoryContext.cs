@@ -20,6 +20,10 @@ namespace Jusfr.Persistent.EF {
             }
         }
 
+        public bool DistributedTransactionSupported {
+            get { return true; }
+        }
+
         public EntityFrameworkRepositoryContext() {
             String connectionString = "?";
             ID = Guid.NewGuid();

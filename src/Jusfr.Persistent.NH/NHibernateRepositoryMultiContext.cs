@@ -15,7 +15,7 @@ namespace Jusfr.Persistent.NH {
         private readonly Dictionary<ISessionFactory, ISession> _sessions;
         private ConcurrentDictionary<Type, IQueryable> _queryables;
 
-        public NHibernateRepositoryMultiContext() {
+        public NHibernateRepositoryMultiContext(){
             _queryables = new ConcurrentDictionary<Type, IQueryable>();
             _sessionFactories = new Dictionary<ISessionFactory, Func<Type, Boolean>>();
             _sessions = new Dictionary<ISessionFactory, ISession>();
@@ -25,7 +25,7 @@ namespace Jusfr.Persistent.NH {
             _sessionFactories.Add(sessionFactory, locator);
         }
 
-        public override ISession GetSession<TEntry>() {
+        public override ISession EnsureSession<TEntry>() {
             var entityType = typeof(TEntry);
             ISessionFactory sessionFactory = null;
             foreach (var locator in _sessionFactories) {
@@ -56,7 +56,7 @@ namespace Jusfr.Persistent.NH {
 
 
         public override IQueryable<TEntry> Of<TEntry>() {
-            return GetSession<TEntry>().Query<TEntry>().Cacheable();
+            return EnsureSession<TEntry>().Query<TEntry>().Cacheable();
             //return new NhQueryable<TEntry>(GetSession<TEntry>().GetSessionImplementation());
         }
 
