@@ -61,13 +61,13 @@
     <Compile Include="SchemaMappings.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Jusfr.Persistent\Jusfr.Persistent.csproj">
       <Project>{1842495b-7a49-4f2a-bca7-f922229ccad8}</Project>
       <Name>Jusfr.Persistent</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
