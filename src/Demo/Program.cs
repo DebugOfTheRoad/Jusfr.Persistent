@@ -1,5 +1,7 @@
 ﻿using Jusfr.Persistent;
 using Jusfr.Persistent.NH;
+using Newtonsoft.Json;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -8,178 +10,123 @@ using System.Linq;
 
 namespace Demo {
     class Program {
+        static Logger _logger = LogManager.GetCurrentClassLogger();
+
         static void Main(string[] args) {
-            Debug.Listeners.Add(new TextWriterTraceListener(Console.Out));
+            var conStr = ConfigurationManager.ConnectionStrings["Chuye"].ConnectionString;
+            var context = new ChuyeContext();
 
-            //CURD2(); return;
-            //TransactionTest(); return;
-            //PagingDemo(); return;
-            //PagingSelectorDemo(); return;
-            CURD(); return;
-        }
+            var workRepo = new NHibernateRepository<Work>(context);
+            var pageRepo = new NHibernateRepository<Page>(context);
+            var works = workRepo.All.EnumPaging(x => new { x.Id, x.Pages }, 100, false);
+            var spliter = new[] { ' ', ',', '"', '[', ']' };
 
-        private static void CURD2() {
-            using (var context = new PubsContext()) {
-                var jobRepo = new NHibernateRepository<Job>(context);
-                var jobs = EnumJobs().ToArray();
-                foreach (var entry in jobs) {
-                    jobRepo.Create(entry);
-                }
-
-                var empRepo = new NHibernateRepository<Employee>(context);
-                var names = "Charles、Mark、Bill、Vincent、William、Joseph、James、Henry、Gary、Martin".Split('、', ' ');
-                for (int i = 0; i < names.Length; i++) {
-                    var entry = new Employee {
-                        Name = names[i],
-                        Address = Guid.NewGuid().ToString().Substring(0, 8),
-                        Birth = DateTime.UtcNow,
-                        Job = jobs[Math.Abs(Guid.NewGuid().GetHashCode() % jobs.Length)],
-                    };
-                    empRepo.Create(entry);
-                }
-            }
-            using (var context = new PubsContext()) {
-                var jobRepo = new NHibernateRepository<Job>(context);
-                var jobs = jobRepo.All;
-                Console.WriteLine("Query all jobs");
-                foreach (var job in jobs) {
-                    Console.WriteLine("{0,2} {1,10} {2:f2}", job.Id, job.Title, job.Salary);
-                }
-
-                var empRepo = new NHibernateRepository<Employee>(context);
-                var emps = empRepo.All;
-                Console.WriteLine("Query all employee");
-                foreach (var entry in emps) {
-                    Console.WriteLine("{0,2} {1,10} {2}",
-                        entry.Id, entry.Name, entry.Address);
-                }
-            }
-        }
-
-        private static IEnumerable<Job> EnumJobs() {
-            yield return new Job { Title = "C#", Salary = 4000 };
-            yield return new Job { Title = "Java", Salary = 5000 };
-            yield return new Job { Title = "JavaScript", Salary = 3000 };
-            yield return new Job { Title = "Perl", Salary = 4800 };
-            yield return new Job { Title = "Python", Salary = 4900 };
-            yield return new Job { Title = "C++", Salary = 5900 };
-            yield return new Job { Title = "Objective-C", Salary = 5900 };
-        }
-        
-        private static void TransactionTest() {
-            using (var context = new PubsContext()) {
-                context.AutoTransaction = true;
-                var repository = new NHibernateRepository<Employee>(context);
-                repository.Delete(repository.All.AsEnumerable());
-                var entry = new Employee {
-                    Name = Guid.NewGuid().ToString("n"),
-                    Address = Guid.NewGuid().ToString("n"),
-                    Birth = DateTime.Now,
+            foreach (var work in works.SelectMany(w => w.Items)) {
+                W w = new W() {
+                    Id = work.Id,
+                    P = new List<P>()
                 };
-                repository.Create(entry);
-                context.Commit();
 
-                entry.Name = "Josie";
-                repository.Update(entry);
-                context.Commit();
-
-                entry.Address = "Wuhan";
-                repository.Update(entry);
-                context.Rollback();
-            }
-        }
-
-        private static void PagingDemo() {
-            using (var context = new PubsContext()) {
-                var jobRepository = new NHibernateRepository<Job>(context);
-                //context.EnsureSession().CreateSQLQuery("TRUNCATE TABLE [Job]").ExecuteUpdate();
-                var pagings = jobRepository.All.EnumPaging(20, false);
-                foreach (var paging in pagings) {
-                    Console.WriteLine("Paging {0}/{1}, Items {2}",
-                        paging.CurrentPage, paging.TotalPages, paging.Items.Count());
-                    paging.CurrentPage = 100;
+                if (work.Pages == null) {
+                    _logger.Warn("Null page in work {0}", work.Id);
                 }
-            }
-        }
+                else {
+                    var pages = work.Pages.Split(spliter, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(x => Int32.Parse(x)).ToArray();
+                    if (pages.Length == 0) {
+                        _logger.Warn("Empty page in work {0}", work.Id);
+                    }
+                    else {
+                        foreach (var pageId in pages) {
+                            var page = pageRepo.Retrive(pageId);
+                            var p = new P() {
+                                Id = pageId,
+                                M = new List<M>()
+                            };
+                            w.P.Add(p);
 
-        private static void PagingSelectorDemo() {
-            using (var context = new PubsContext()) {
-                var jobRepository = new NHibernateRepository<Employee>(context);
-                var pagings = jobRepository.All.EnumPaging(r => r.Name, 100, false);
-                foreach (var paging in pagings) {
-                    Console.WriteLine("Paging {0}/{1}",
-                        paging.CurrentPage, paging.TotalPages);
-                    foreach (var p in paging.Items) {
-                        Console.WriteLine(p);
+                            if (page == null) {
+                                _logger.Warn("Null page in work {0}, {1}", work.Id, pageId);
+                            }
+                            else {
+                                var medias = page.Medias.Split(spliter, StringSplitOptions.RemoveEmptyEntries)
+                                    .Select(x => Int32.Parse(x)).ToArray();
+                                if (medias.Length == 0) {
+                                    _logger.Warn("Empty media in page {0}", pageId);
+                                }
+                                else {
+                                    foreach (var mediaId in medias) {
+                                        var m = new M() {
+                                            Id = mediaId,
+                                        };
+                                        p.M.Add(m);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+
+                var json = JsonConvert.SerializeObject(w);
+                _logger.Trace(json);
             }
         }
 
-        private static void CURD() {
-            using (var context = new PubsContext()) {
-                //var query = context.EnsureSession().CreateSQLQuery("SELECT Id, Name AS Title, JobId AS Salary FROM dbo.Employee");
-                //var jobs = query.UniqueResult<Job>();
+        private static void PrepareData() {
+            var conStr = ConfigurationManager.ConnectionStrings["Pubs"].ConnectionString;
+            var context = new PubsContext();
 
-                var jobRepository = new NHibernateRepository<Job>(context);
-                var employeeRepository = new NHibernateRepository<Employee>(context);
-                foreach (var entry in jobRepository.All) {
-                    jobRepository.Delete(entry);
-                }
-                foreach (var entry in employeeRepository.All) {
-                    employeeRepository.Delete(entry);
-                }
+            Console.WriteLine("Remove all Jobs");
+            context.EnsureSession<Job>().CreateSQLQuery("Delete from Job").ExecuteUpdate();
+            Console.WriteLine();
 
-                var CShape = new Job {
-                    Title = "C#", Salary = 4
+            var jobRepo = new NHibernateRepository<Job>(context);
+            var jobTitles = new[] { "Java", "C", "C++", "Objective-C", "C#", "JavaScript", "PHP", "Python" };
+            var jobs = new List<Job>(jobTitles.Length);
+            for (int i = 0; i < jobTitles.Length; i++) {
+                var job = new Job {
+                    Title = jobTitles[i],
+                    Salary = Math.Abs(Guid.NewGuid().GetHashCode() % 8000 + 8000),
                 };
-                jobRepository.Create(CShape);
-                var Java = new Job {
-                    Title = "Java", Salary = 5
-                };
-                jobRepository.Create(Java);
-                var Javascript = new Job {
-                    Title = "Javascript", Salary = 3
-                };
-                jobRepository.Create(Javascript);
-
-                var Aimee = new Employee {
-                    Name = "Aimee", Address = "Los Angeles", Birth = DateTime.Now,
-                    Job = CShape
-                };
-                employeeRepository.Create(Aimee);
-                var Becky = new Employee {
-                    Name = "Becky", Address = "Bejing", Birth = DateTime.Now,
-                    Job = Java
-                };
-                employeeRepository.Create(Becky);
-                var Carmen = new Employee {
-                    Name = "Carmen", Address = "Salt Lake City", Birth = DateTime.Now,
-                    Job = Javascript
-                };
-                employeeRepository.Create(Carmen);
-
-                Console.WriteLine("Employee all");
-                foreach (var entry in employeeRepository.All) {
-                    Console.WriteLine("{0,-10} {1} {2}",
-                        entry.Name, entry.Job.Salary, entry.Address);
-                }
-                Console.WriteLine();
-
-                Carmen = employeeRepository.Retrive(Carmen.Id);
-                Carmen.Job = Java;
-                employeeRepository.Update(Carmen);
-
-                Console.WriteLine("Employee live in USA");
-                foreach (var entry in employeeRepository.Retrive("Address", new[] { "Los Angeles", "Salt Lake City" })) {
-                    Console.WriteLine("{0,-10} {1} {2}",
-                       entry.Name, entry.Job.Salary, entry.Address);
-                }
-                Console.WriteLine();
-
-                employeeRepository.Delete(Carmen);
-                Console.WriteLine("Employee left {0}", employeeRepository.All.Count());
+                jobRepo.Create(job);
+                jobs.Add(job);
             }
+
+            var employeeRepo = new NHibernateRepository<Employee>(context);
+            Console.WriteLine("Remove all employee");
+            context.EnsureSession<Employee>().CreateSQLQuery("Delete from Employee").ExecuteUpdate();
+            Console.WriteLine();
+
+            var employeeNames = new[] { "Charles", "Mark", "Bill", "Vincent", "William", "Joseph", "James", "Henry", "Gary", "Martin" };
+            for (int i = 0; i < employeeNames.Length; i++) {
+                var entry = new Employee {
+                    Name = employeeNames[i],
+                    Address = Guid.NewGuid().ToString().Substring(0, 8),
+                    Birth = DateTime.UtcNow,
+                    Job = jobs[Math.Abs(Guid.NewGuid().GetHashCode()) % jobs.Count],
+                };
+                employeeRepo.Create(entry);
+            }
+
+            Console.WriteLine("Query all employee");
+            foreach (var entry in employeeRepo.All.Where(r => r.Job.Salary > 3000)) {
+                Console.WriteLine("{0,-10} {1}", entry.Name, entry.Job.Salary);
+            }
+            Console.WriteLine();
         }
     }
+
+public class W {
+    public Int32 Id { get; set; }
+    public List<P> P { get; set; }
+}
+
+public class P {
+    public Int32 Id { get; set; }
+    public List<M> M { get; set; }
+}
+
+public class M {
+    public Int32 Id { get; set; }
+}
 }

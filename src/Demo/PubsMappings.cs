@@ -23,15 +23,5 @@ namespace Demo {
             References(x => x.Job).Column("JobId");
         }
     }
-
-    public class JobEx : Job {
-        public DateTime Time { get; set; }
-    }
-
-    public class JobExMap : JobMap {
-        public JobExMap() {
-            Table("Job");
-        }
-    }
 }
 
